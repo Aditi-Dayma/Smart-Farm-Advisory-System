@@ -1,12 +1,20 @@
 # Vercel Ignore File
-# Excludes heavy datasets, cache artifacts, and local virtualenvs from Vercel deployment
+# Excludes Python backend, heavy ML dependencies, data, and tests
+# This ensures Vercel deploys the application as a fast static web app
 
+requirements.txt
+src/
+aws/
 data/
+docs/
+notebooks/
+tests/
 models/
 logs/
 reports/
 .pytest_cache/
 **/__pycache__/
+*.py
 *.pyc
 *.pkl
 *.joblib
