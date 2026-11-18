@@ -4,4 +4,4 @@ version = "1.0.0"
 description = "Autonomous Precision Agriculture on AWS"
 
 [tool.vercel]
-entrypoint = "app.py"
+entrypoint = "app:app"
