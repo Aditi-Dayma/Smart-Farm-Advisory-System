@@ -1,0 +1,54 @@
+{
+  "Tables": [
+    {
+      "TableName": "FarmProfiles",
+      "KeySchema": [
+        { "AttributeName": "farm_id", "KeyType": "HASH" }
+      ],
+      "AttributeDefinitions": [
+        { "AttributeName": "farm_id", "AttributeType": "S" }
+      ],
+      "BillingMode": "PAY_PER_REQUEST",
+      "Description": "Stores registered farmer demographic, location (lat/lon), soil type, and cultivated crops"
+    },
+    {
+      "TableName": "IrrigationAdvisories",
+      "KeySchema": [
+        { "AttributeName": "farm_id", "KeyType": "HASH" },
+        { "AttributeName": "date", "KeyType": "RANGE" }
+      ],
+      "AttributeDefinitions": [
+        { "AttributeName": "farm_id", "AttributeType": "S" },
+        { "AttributeName": "date", "AttributeType": "S" }
+      ],
+      "BillingMode": "PAY_PER_REQUEST",
+      "Description": "Historical log of daily water balance recommendations and weather factors per farm"
+    },
+    {
+      "TableName": "PesticideAdvisories",
+      "KeySchema": [
+        { "AttributeName": "farm_id", "KeyType": "HASH" },
+        { "AttributeName": "timestamp", "KeyType": "RANGE" }
+      ],
+      "AttributeDefinitions": [
+        { "AttributeName": "farm_id", "AttributeType": "S" },
+        { "AttributeName": "timestamp", "AttributeType": "S" }
+      ],
+      "BillingMode": "PAY_PER_REQUEST",
+      "Description": "Audit trail of leaf diagnostic outcomes, weather gate checks, and issued pesticide advisories"
+    },
+    {
+      "TableName": "DiseaseDetections",
+      "KeySchema": [
+        { "AttributeName": "detection_id", "KeyType": "HASH" },
+        { "AttributeName": "timestamp", "KeyType": "RANGE" }
+      ],
+      "AttributeDefinitions": [
+        { "AttributeName": "detection_id", "AttributeType": "S" },
+        { "AttributeName": "timestamp", "AttributeType": "S" }
+      ],
+      "BillingMode": "PAY_PER_REQUEST",
+      "Description": "Raw detection telemetry linking S3 image keys with model predictions and Grad-CAM outputs"
+    }
+  ]
+}

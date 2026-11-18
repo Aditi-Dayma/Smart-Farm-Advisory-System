@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Farm Advisory System - AWS</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-emerald-800 text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <span class="text-3xl">🌾</span>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight">Smart Farm Advisory System</h1>
+          <p class="text-xs text-emerald-200">Autonomous Precision Agriculture on AWS (SageMaker & Serverless)</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4 text-xs">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-emerald-700 text-emerald-100 border border-emerald-500">
+          <span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+          AWS ap-south-1 (Live)
+        </span>
+        <div id="liveClock" class="font-mono text-emerald-200 hidden sm:block"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Banner -->
+  <div class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 text-center font-medium">
+    ⚡ Running in Interactive Client Mode with simulated AWS API Gateway & SageMaker Endpoint responses.
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="bg-white border-b border-slate-200 shadow-sm sticky top-16 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav class="flex space-x-4 sm:space-x-8 overflow-x-auto py-2" aria-label="Tabs">
+        <button onclick="switchTab('crop')" id="tab-crop" class="tab-btn px-3 py-2 text-sm font-semibold rounded-lg text-emerald-700 bg-emerald-50 border-b-2 border-emerald-600 flex items-center space-x-2 whitespace-nowrap">
+          <span>🌱</span>
+          <span>1. Crop Suitability</span>
+        </button>
+        <button onclick="switchTab('disease')" id="tab-disease" class="tab-btn px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:text-emerald-700 hover:bg-slate-50 flex items-center space-x-2 whitespace-nowrap">
+          <span>🔬</span>
+          <span>2. Disease Detection</span>
+        </button>
+        <button onclick="switchTab('irrigation')" id="tab-irrigation" class="tab-btn px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:text-emerald-700 hover:bg-slate-50 flex items-center space-x-2 whitespace-nowrap">
+          <span>💧</span>
+          <span>3. Irrigation Scheduling</span>
+        </button>
+        <button onclick="switchTab('pesticide')" id="tab-pesticide" class="tab-btn px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:text-emerald-700 hover:bg-slate-50 flex items-center space-x-2 whitespace-nowrap">
+          <span>🧪</span>
+          <span>4. Pesticide Advisory</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- MODULE 1: CROP SUITABILITY -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <section id="section-crop" class="space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="border-b border-slate-100 pb-4 mb-6">
+          <h2 class="text-xl font-bold text-slate-900">Module 1: Seasonal Crop Suitability Recommender</h2>
+          <p class="text-sm text-slate-500">Multiclass classification on soil chemistry and atmospheric variables with ICAR sowing-calendar filtering.</p>
+        </div>
+
+        <form id="cropForm" onsubmit="handleCropSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nitrogen (N) kg/ha</label>
+            <input type="number" id="cropN" value="45" min="0" max="200" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Phosphorus (P) kg/ha</label>
+            <input type="number" id="cropP" value="50" min="0" max="200" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Potassium (K) kg/ha</label>
+            <input type="number" id="cropK" value="40" min="0" max="200" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Soil pH</label>
+            <input type="number" step="0.1" id="cropPH" value="6.5" min="3" max="10" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Temperature (°C)</label>
+            <input type="number" step="0.1" id="cropTemp" value="27.0" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Relative Humidity (%)</label>
+            <input type="number" id="cropHumidity" value="75" min="10" max="100" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Seasonal Rainfall (mm)</label>
+            <input type="number" id="cropRain" value="180" min="0" max="3000" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Current Season</label>
+            <select id="cropSeason" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="Kharif" selected>Kharif (Monsoon / Jun-Oct)</option>
+              <option value="Rabi">Rabi (Winter / Nov-Mar)</option>
+              <option value="Zaid">Zaid (Summer / Mar-Jun)</option>
+            </select>
+          </div>
+          <div class="sm:col-span-2 lg:col-span-4 flex justify-end">
+            <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white font-medium px-6 py-2.5 rounded-lg shadow-sm flex items-center space-x-2 transition">
+              <span>Predict Sowable Crops</span>
+              <span>→</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Crop Results Container -->
+        <div id="cropResults" class="mt-8 pt-6 border-t border-slate-100 hidden">
+          <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center justify-between">
+            <span>Recommended Top 3 Sowing Options</span>
+            <span class="text-xs font-normal text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">Season-Filtered (ICAR Aligned)</span>
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="cropCardsContainer">
+            <!-- Dynamic Cards Inserted Here -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- MODULE 2: DISEASE DETECTION -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <section id="section-disease" class="space-y-6 hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="border-b border-slate-100 pb-4 mb-6">
+          <h2 class="text-xl font-bold text-slate-900">Module 2: Crop Disease Identification (MobileNetV2)</h2>
+          <p class="text-sm text-slate-500">Real-time deep learning inference classifying foliar pathogens across Tomato, Potato, Corn, Grape, and Apple.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Upload Area -->
+          <div class="space-y-4">
+            <div id="dropZone" class="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl p-8 text-center cursor-pointer bg-slate-50 transition" onclick="document.getElementById('leafFileInput').click()">
+              <input type="file" id="leafFileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+              <div class="text-4xl mb-3">🍃</div>
+              <p class="text-sm font-semibold text-slate-700">Click to upload or drag leaf photograph here</p>
+              <p class="text-xs text-slate-400 mt-1">Supports JPG, PNG (Max 10MB)</p>
+            </div>
+
+            <!-- Previews -->
+            <div id="imagePreviewContainer" class="hidden border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center space-x-4">
+              <img id="imagePreview" src="" alt="Selected leaf" class="w-20 h-20 object-cover rounded-md border border-slate-200">
+              <div class="flex-1">
+                <p id="fileName" class="text-xs font-semibold text-slate-800 truncate"></p>
+                <p id="fileSize" class="text-xs text-slate-500"></p>
+              </div>
+              <button onclick="analyzeDisease()" id="analyzeBtn" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium px-4 py-2 rounded-lg transition">
+                Diagnose Image
+              </button>
+            </div>
+
+            <!-- Sample Buttons for quick demo -->
+            <div>
+              <p class="text-xs font-semibold text-slate-500 mb-2">Or select a preloaded sample:</p>
+              <div class="flex flex-wrap gap-2">
+                <button onclick="loadSample('tomato_early_blight')" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md border border-slate-200">🍅 Tomato Early Blight</button>
+                <button onclick="loadSample('potato_late_blight')" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md border border-slate-200">🥔 Potato Late Blight</button>
+                <button onclick="loadSample('corn_rust')" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md border border-slate-200">🌽 Corn Common Rust</button>
+                <button onclick="loadSample('grape_black_rot')" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md border border-slate-200">🍇 Grape Black Rot</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Diagnostic Result -->
+          <div id="diseaseResultCard" class="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col justify-center items-center text-center">
+            <div class="text-slate-400 text-sm">Upload or select an image to inspect real-time diagnostic output.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- MODULE 3: IRRIGATION SCHEDULING -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <section id="section-irrigation" class="space-y-6 hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="border-b border-slate-100 pb-4 mb-6">
+          <h2 class="text-xl font-bold text-slate-900">Module 3: Daily Irrigation Advisory (FAO-56 & ML)</h2>
+          <p class="text-sm text-slate-500">Evaluates soil-water balance using reference evapotranspiration (ET₀), crop factors (Kc), and rain-skip gates.</p>
+        </div>
+
+        <form id="irrigationForm" onsubmit="handleIrrigationSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Latitude</label>
+            <input type="number" step="0.01" id="irrLat" value="19.07" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Longitude</label>
+            <input type="number" step="0.01" id="irrLon" value="72.87" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Crop</label>
+            <select id="irrCrop" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+              <option value="rice" selected>Rice (Paddy)</option>
+              <option value="maize">Maize (Corn)</option>
+              <option value="cotton">Cotton</option>
+              <option value="banana">Banana</option>
+              <option value="chickpea">Chickpea</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Days Since Planting</label>
+            <input type="number" id="irrDays" value="45" min="1" max="300" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Soil Texture</label>
+            <select id="irrSoil" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+              <option value="loamy" selected>Loamy</option>
+              <option value="clay">Clay</option>
+              <option value="sandy">Sandy</option>
+              <option value="silt">Silt</option>
+            </select>
+          </div>
+          <div class="sm:col-span-2 lg:col-span-5 flex justify-end">
+            <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white font-medium px-6 py-2 rounded-lg text-sm transition">
+              Calculate Irrigation Need
+            </button>
+          </div>
+        </form>
+
+        <!-- Advisory Output -->
+        <div id="irrigationResults" class="mt-8 pt-6 border-t border-slate-100 hidden space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Decision Card -->
+            <div id="irrDecisionCard" class="p-5 rounded-xl border border-slate-200"></div>
+
+            <!-- Water Metrics -->
+            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-col justify-between">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Atmospheric Demand</h4>
+              <div class="my-2 space-y-2">
+                <div class="flex justify-between text-sm">
+                  <span class="text-slate-600">Reference Evapotranspiration (ET₀):</span>
+                  <span id="metricET0" class="font-bold text-slate-800">4.5 mm/day</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-slate-600">Crop Coefficient (Kc):</span>
+                  <span id="metricKc" class="font-bold text-slate-800">1.15</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-slate-600">Crop Water Need (ETc):</span>
+                  <span id="metricETc" class="font-bold text-emerald-700">5.18 mm/day</span>
+                </div>
+              </div>
+              <div class="text-xs text-slate-500 border-t border-slate-200 pt-2">
+                Forecast Rain (Next 24h): <span id="metricRain" class="font-semibold text-slate-700">0.0 mm</span>
+              </div>
+            </div>
+
+            <!-- Depletion Meter -->
+            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-col justify-between">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Root-Zone Depletion</h4>
+              <div class="my-auto py-2">
+                <div class="flex justify-between text-xs font-semibold mb-1">
+                  <span>Available Capacity</span>
+                  <span id="depletionPercentText">55%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
+                  <div id="depletionBar" class="bg-amber-500 h-4 rounded-full transition-all duration-500" style="width: 55%"></div>
+                </div>
+                <p class="text-xs text-slate-400 mt-2">MAD Threshold: 50% depletion triggers replenishment.</p>
+              </div>
+              <div class="text-xs text-slate-500 border-t border-slate-200 pt-2">
+                Calculated via FAO-56 Penman-Monteith Model
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- MODULE 4: PESTICIDE ADVISORY -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <section id="section-pesticide" class="space-y-6 hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <!-- Safety Alert Header -->
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mb-6">
+          <div class="flex items-start">
+            <span class="text-xl mr-3">⚠️</span>
+            <div>
+              <h3 class="text-sm font-bold text-red-900 uppercase tracking-wide">Agronomic Governance Disclaimer</h3>
+              <p class="text-xs text-red-700 mt-1">
+                Pesticide dosages are governed strictly by state university packages of practices and product labels. 
+                ML models do NOT invent chemical doses. Always consult a certified agronomist and observe Pre-Harvest Intervals (PHI).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-b border-slate-100 pb-4 mb-6">
+          <h2 class="text-xl font-bold text-slate-900">Module 4: Governed Pesticide & Biocontrol Advisory</h2>
+          <p class="text-sm text-slate-500">Weather-gated application timing and official chemical / biocontrol dosage lookups.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Target Crop</label>
+            <select id="pestCrop" onchange="updateDiseaseDropdown()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+              <option value="Tomato" selected>Tomato</option>
+              <option value="Potato">Potato</option>
+              <option value="Corn">Corn</option>
+              <option value="Grape">Grape</option>
+              <option value="Apple">Apple</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Diagnosed Disease</label>
+            <select id="pestDisease" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"></select>
+          </div>
+          <div class="flex items-end">
+            <button onclick="generatePesticideAdvice()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-medium py-2 rounded-lg text-sm transition">
+              Retrieve Governed Advisory
+            </button>
+          </div>
+        </div>
+
+        <!-- Weather Gates & Recommendations Output -->
+        <div id="pesticideAdviceOutput" class="space-y-6 hidden">
+          <!-- Weather Safety Badge -->
+          <div id="sprayGateBanner" class="p-4 rounded-xl border flex items-center justify-between"></div>
+
+          <!-- Treatment Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
+                  <th class="p-3">Type</th>
+                  <th class="p-3">Trade Name & Active</th>
+                  <th class="p-3">Dilution (per Liter)</th>
+                  <th class="p-3">Dose (per Hectare)</th>
+                  <th class="p-3">Interval</th>
+                  <th class="p-3">Pre-Harvest Interval (PHI)</th>
+                </tr>
+              </thead>
+              <tbody id="treatmentTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+
+          <!-- PPE & Protective Measures -->
+          <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Mandatory Personal Protective Equipment (PPE)</h4>
+            <div class="flex flex-wrap gap-2 text-xs text-slate-600">
+              <span class="bg-white px-2.5 py-1 rounded border border-slate-200">🧤 Chemical-resistant Gloves</span>
+              <span class="bg-white px-2.5 py-1 rounded border border-slate-200">😷 N95 Respiratory Mask</span>
+              <span class="bg-white px-2.5 py-1 rounded border border-slate-200">🥽 Protective Eyewear</span>
+              <span class="bg-white px-2.5 py-1 rounded border border-slate-200">👢 Rubber Waterproof Boots</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-900 text-slate-400 text-xs py-6 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+      <div>Smart Farm Advisory System | AWS SageMaker Pipelines & Serverless Architecture</div>
+      <div class="flex space-x-6">
+        <span>Unit IV: Real-Time vs Batch</span>
+        <span>Unit V: AI Governance & Safety</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Logic (Interactive Simulation Engine) -->
+  <script>
+    // Live Clock
+    function updateClock() {
+      const el = document.getElementById('liveClock');
+      if (el) {
+        const now = new Date();
+        el.innerText = now.toUTCString().replace('GMT', 'UTC');
+      }
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('text-emerald-700', 'bg-emerald-50', 'border-b-2', 'border-emerald-600');
+        btn.classList.add('text-slate-600');
+      });
+
+      document.getElementById(`section-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-${tabId}`);
+      activeBtn.classList.add('text-emerald-700', 'bg-emerald-50', 'border-b-2', 'border-emerald-600');
+      activeBtn.classList.remove('text-slate-600');
+    }
+
+    // Module 1: Crop Suitability Form
+    function handleCropSubmit(e) {
+      e.preventDefault();
+      const season = document.getElementById('cropSeason').value;
+      const n = parseFloat(document.getElementById('cropN').value);
+      const rf = parseFloat(document.getElementById('cropRain').value);
+
+      // Rule-based heuristic simulation reflecting model output
+      let topCrops = [];
+      if (season === 'Kharif') {
+        topCrops = [
+          { crop: 'Rice (Paddy)', prob: 0.92, match: true, cond: 'Needs 1000-2000mm water, high humidity, warm temps' },
+          { crop: 'Maize (Corn)', prob: 0.81, match: true, cond: 'Moderate moisture, well-draining loamy soil' },
+          { crop: 'Cotton', prob: 0.68, match: true, cond: 'Black/alluvial soil, warm climate, moderate rainfall' }
+        ];
+      } else if (season === 'Rabi') {
+        topCrops = [
+          { crop: 'Chickpea', prob: 0.94, match: true, cond: 'Cool climate, low humidity, 350-450mm water' },
+          { crop: 'Wheat', prob: 0.88, match: true, cond: 'Clay loam soil, cooler winter growing window' },
+          { crop: 'Lentil', prob: 0.72, match: true, cond: 'Drought-tolerant pulse, nitrogen-fixing' }
+        ];
+      } else {
+        topCrops = [
+          { crop: 'Watermelon', prob: 0.91, match: true, cond: 'Sandy loam, warm sunshine, controlled irrigation' },
+          { crop: 'Muskmelon', prob: 0.84, match: true, cond: 'High temperature, well-drained fertile soil' },
+          { crop: 'Mungbean', prob: 0.73, match: true, cond: 'Quick 65-day summer rotation pulse' }
+        ];
+      }
+
+      const container = document.getElementById('cropCardsContainer');
+      container.innerHTML = topCrops.map((c, i) => `
+        <div class="border border-slate-200 rounded-xl p-5 bg-gradient-to-br from-white to-slate-50 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Rank #${i+1}</span>
+              <span class="text-xs font-medium text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">Sowable Now</span>
+            </div>
+            <h4 class="text-lg font-bold text-slate-800">${c.crop}</h4>
+            <div class="w-full bg-slate-200 rounded-full h-2 my-3">
+              <div class="bg-emerald-600 h-2 rounded-full" style="width: ${c.prob * 100}%"></div>
+            </div>
+            <div class="text-xs text-slate-600 mb-2">Confidence: <span class="font-bold text-slate-800">${(c.prob * 100).toFixed(1)}%</span></div>
+            <p class="text-xs text-slate-500">${c.cond}</p>
+          </div>
+          <button onclick="autoFillIrrigation('${c.crop.split(' ')[0].toLowerCase()}')" class="mt-4 text-xs font-semibold text-emerald-700 hover:text-emerald-800 text-left">
+            → Plan Irrigation for ${c.crop.split(' ')[0]}
+          </button>
+        </div>
+      `).join('');
+
+      document.getElementById('cropResults').classList.remove('hidden');
+    }
+
+    function autoFillIrrigation(crop) {
+      switchTab('irrigation');
+      const sel = document.getElementById('irrCrop');
+      if (sel) {
+        for (let opt of sel.options) {
+          if (opt.value.includes(crop) || crop.includes(opt.value)) {
+            sel.value = opt.value;
+            break;
+          }
+        }
+      }
+    }
+
+    // Module 2: Image Handlers
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      document.getElementById('fileName').innerText = file.name;
+      document.getElementById('fileSize').innerText = `${(file.size / 1024).toFixed(1)} KB`;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        document.getElementById('imagePreview').src = evt.target.result;
+        document.getElementById('imagePreviewContainer').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadSample(key) {
+      const samples = {
+        'tomato_early_blight': { crop: 'Tomato', disease: 'Early Blight', conf: 0.94, img: 'https://images.unsplash.com/photo-1592878904946-b3cd8ae243d0?w=200&h=200&fit=crop' },
+        'potato_late_blight': { crop: 'Potato', disease: 'Late Blight', conf: 0.91, img: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=200&h=200&fit=crop' },
+        'corn_rust': { crop: 'Corn', disease: 'Common Rust', conf: 0.89, img: 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=200&h=200&fit=crop' },
+        'grape_black_rot': { crop: 'Grape', disease: 'Black Rot', conf: 0.93, img: 'https://images.unsplash.com/photo-1537640538966-79f369143f8f?w=200&h=200&fit=crop' }
+      };
+      const s = samples[key];
+      document.getElementById('imagePreview').src = s.img;
+      document.getElementById('fileName').innerText = `${s.crop}_${s.disease}.jpg`;
+      document.getElementById('fileSize').innerText = '145.2 KB';
+      document.getElementById('imagePreviewContainer').classList.remove('hidden');
+      displayDiagnostic(s.crop, s.disease, s.conf);
+    }
+
+    function analyzeDisease() {
+      // Simulate real-time endpoint latency
+      const card = document.getElementById('diseaseResultCard');
+      card.innerHTML = `<div class="text-sm text-slate-500 animate-pulse">Invoking SageMaker Real-Time Endpoint (ap-south-1)...</div>`;
+      setTimeout(() => {
+        displayDiagnostic('Tomato', 'Early Blight', 0.942);
+      }, 700);
+    }
+
+    function displayDiagnostic(crop, disease, conf) {
+      const card = document.getElementById('diseaseResultCard');
+      card.className = "bg-white border border-slate-200 rounded-xl p-6 text-left shadow-sm";
+      card.innerHTML = `
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Diagnosis Report</span>
+          <span class="text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">Pathogen Detected</span>
+        </div>
+        <div class="space-y-3">
+          <div>
+            <div class="text-xs text-slate-500">Commodity / Crop:</div>
+            <div class="text-base font-bold text-slate-800">${crop}</div>
+          </div>
+          <div>
+            <div class="text-xs text-slate-500">Identified Disease:</div>
+            <div class="text-xl font-extrabold text-red-600">${disease}</div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs text-slate-600 mb-1">
+              <span>Endpoint Confidence:</span>
+              <span class="font-bold text-slate-800">${(conf * 100).toFixed(1)}%</span>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-2">
+              <div class="bg-red-500 h-2 rounded-full" style="width: ${conf * 100}%"></div>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs text-slate-500">Latency: 284ms (ml.m5.large)</span>
+            <button onclick="routeToPesticide('${crop}', '${disease}')" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium px-4 py-2 rounded-lg transition">
+              Get Governed Remedy →
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function routeToPesticide(crop, disease) {
+      switchTab('pesticide');
+      document.getElementById('pestCrop').value = crop;
+      updateDiseaseDropdown();
+      document.getElementById('pestDisease').value = disease;
+      generatePesticideAdvice();
+    }
+
+    // Module 3: Irrigation Calculations
+    function handleIrrigationSubmit(e) {
+      e.preventDefault();
+      const crop = document.getElementById('irrCrop').value;
+      const days = parseInt(document.getElementById('irrDays').value);
+      const soil = document.getElementById('irrSoil').value;
+
+      // FAO-56 Simulation
+      const et0 = 4.8;
+      let kc = 0.8;
+      if (crop === 'rice') kc = days > 30 && days < 90 ? 1.20 : 0.95;
+      else if (crop === 'maize') kc = days > 25 && days < 70 ? 1.15 : 0.70;
+      else if (crop === 'cotton') kc = days > 40 && days < 110 ? 1.20 : 0.65;
+      else if (crop === 'banana') kc = 1.10;
+      else if (crop === 'chickpea') kc = 1.00;
+
+      const etc = et0 * kc;
+      const depletion = 0.58; // 58% depletion > 50% threshold
+      const shouldIrrigate = depletion >= 0.50;
+      const amountMm = shouldIrrigate ? (etc * 4.2).toFixed(1) : 0.0;
+      const amountLiters = (amountMm * 10000).toLocaleString();
+
+      document.getElementById('metricET0').innerText = `${et0.toFixed(2)} mm/day`;
+      document.getElementById('metricKc').innerText = kc.toFixed(2);
+      document.getElementById('metricETc').innerText = `${etc.toFixed(2)} mm/day`;
+
+      const decCard = document.getElementById('irrDecisionCard');
+      if (shouldIrrigate) {
+        decCard.className = "bg-blue-50 border border-blue-200 p-5 rounded-xl";
+        decCard.innerHTML = `
+          <div class="flex items-center space-x-2 text-blue-700 font-bold mb-2">
+            <span class="text-xl">💧</span>
+            <span>IRRIGATION REQUIRED TODAY</span>
+          </div>
+          <p class="text-xs text-blue-800 mb-4">Root-zone depletion is at 58%, exceeding the 50% Management Allowed Depletion (MAD) threshold.</p>
+          <div class="space-y-1">
+            <div class="text-xs text-blue-600">Recommended Depth: <span class="font-bold text-blue-900">${amountMm} mm</span></div>
+            <div class="text-xs text-blue-600">Volume (per Hectare): <span class="font-bold text-blue-900">${amountLiters} Liters</span></div>
+          </div>
+        `;
+      } else {
+        decCard.className = "bg-emerald-50 border border-emerald-200 p-5 rounded-xl";
+        decCard.innerHTML = `
+          <div class="flex items-center space-x-2 text-emerald-700 font-bold mb-2">
+            <span class="text-xl">✅</span>
+            <span>MOISTURE SUFFICIENT</span>
+          </div>
+          <p class="text-xs text-emerald-800">Depletion is within the safe threshold. No irrigation necessary today.</p>
+        `;
+      }
+
+      document.getElementById('irrigationResults').classList.remove('hidden');
+    }
+
+    // Module 4: Pesticide Advisory
+    const diseasesByCrop = {
+      'Tomato': ['Early Blight', 'Late Blight', 'Leaf Mold', 'Bacterial Spot'],
+      'Potato': ['Early Blight', 'Late Blight'],
+      'Corn': ['Common Rust', 'Gray Leaf Spot', 'Northern Leaf Blight'],
+      'Grape': ['Black Rot', 'Esca', 'Leaf Blight'],
+      'Apple': ['Apple Scab', 'Black Rot', 'Cedar Apple Rust']
+    };
+
+    function updateDiseaseDropdown() {
+      const crop = document.getElementById('pestCrop').value;
+      const sel = document.getElementById('pestDisease');
+      sel.innerHTML = (diseasesByCrop[crop] || ['Early Blight']).map(d => `<option value="${d}">${d}</option>`).join('');
+    }
+    updateDiseaseDropdown();
+
+    const treatmentDb = {
+      'Early Blight': [
+        { type: 'chemical', name: 'Mancozeb 75% WP', active: 'Mancozeb', doseL: '2.5 g/L', doseHa: '625 g/ha', interval: '7 days', phi: '5 days' },
+        { type: 'chemical', name: 'Chlorothalonil 75% WP', active: 'Chlorothalonil', doseL: '2.0 g/L', doseHa: '500 g/ha', interval: '10 days', phi: '7 days' },
+        { type: 'biocontrol', name: 'Trichoderma viride 1% WP', active: 'Trichoderma viride', doseL: '5.0 g/L', doseHa: '2.5 kg/ha', interval: '7 days', phi: '0 days' }
+      ],
+      'Late Blight': [
+        { type: 'chemical', name: 'Metalaxyl 8% + Mancozeb 64%', active: 'Metalaxyl + Mancozeb', doseL: '2.5 g/L', doseHa: '625 g/ha', interval: '10 days', phi: '14 days' },
+        { type: 'biocontrol', name: 'Pseudomonas fluorescens 1% WP', active: 'Pseudomonas', doseL: '5.0 g/L', doseHa: '2.5 kg/ha', interval: '7 days', phi: '0 days' }
+      ]
+    };
+
+    function generatePesticideAdvice() {
+      const disease = document.getElementById('pestDisease').value;
+      const treatments = treatmentDb[disease] || treatmentDb['Early Blight'];
+
+      // Weather checks
+      const windSpeed = 6.2;
+      const rain = 0.0;
+      const isSafe = windSpeed <= 15.0 && rain <= 0.5;
+
+      const banner = document.getElementById('sprayGateBanner');
+      if (isSafe) {
+        banner.className = "bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-center justify-between";
+        banner.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">🌤️</span>
+            <div>
+              <div class="text-sm font-bold text-emerald-900">Atmospheric Gate Passed: Safe to Spray</div>
+              <div class="text-xs text-emerald-700">Wind: ${windSpeed} km/h (Limit: 15 km/h) | Rain 6h: ${rain} mm | Optimal: Morning (06:00 - 08:00 AM)</div>
+            </div>
+          </div>
+          <span class="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300">Gate Open</span>
+        `;
+      } else {
+        banner.className = "bg-red-50 border border-red-200 p-4 rounded-xl flex items-center justify-between";
+        banner.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">🚫</span>
+            <div>
+              <div class="text-sm font-bold text-red-900">Atmospheric Gate Blocked: Do Not Spray</div>
+              <div class="text-xs text-red-700">Adverse weather conditions detected. Spray drift or wash-off risk.</div>
+            </div>
+          </div>
+        `;
+      }
+
+      const tbody = document.getElementById('treatmentTableBody');
+      tbody.innerHTML = treatments.map(t => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${t.type === 'biocontrol' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}">
+              ${t.type === 'biocontrol' ? '🧬 Biocontrol' : '💊 Chemical'}
+            </span>
+          </td>
+          <td class="p-3 font-semibold text-slate-800">${t.name}<div class="text-xs font-normal text-slate-500">${t.active}</div></td>
+          <td class="p-3">${t.doseL}</td>
+          <td class="p-3">${t.doseHa}</td>
+          <td class="p-3">${t.interval}</td>
+          <td class="p-3 font-bold text-slate-700">${t.phi}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('pesticideAdviceOutput').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>

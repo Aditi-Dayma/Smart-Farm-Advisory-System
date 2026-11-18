@@ -1,0 +1,28 @@
+{
+  "Rules": [
+    {
+      "Name": "DailyIrrigationAdvisoryTrigger",
+      "Description": "Fires daily at 06:00 AM IST (00:30 UTC) to invoke irrigation calculation Lambda",
+      "ScheduleExpression": "cron(30 0 * * ? *)",
+      "State": "ENABLED",
+      "Targets": [
+        {
+          "Id": "IrrigationDailyLambdaTarget",
+          "Arn": "arn:aws:lambda:ap-south-1:123456789012:function:SmartFarm-IrrigationDaily"
+        }
+      ]
+    },
+    {
+      "Name": "WeeklyModelDriftEvaluationTrigger",
+      "Description": "Fires every Sunday at midnight UTC to trigger SageMaker Clarify and Model Monitor drift check",
+      "ScheduleExpression": "cron(0 0 ? * SUN *)",
+      "State": "ENABLED",
+      "Targets": [
+        {
+          "Id": "ModelMonitorTriggerLambdaTarget",
+          "Arn": "arn:aws:lambda:ap-south-1:123456789012:function:SmartFarm-TriggerMonitoring"
+        }
+      ]
+    }
+  ]
+}

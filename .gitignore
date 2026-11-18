@@ -1,0 +1,56 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing & logs
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+logs/
+
+# Large Model weights & raw image caches (keep tracked code and configs)
+models/*.h5
+models/*.joblib
+models/*.pkl
+data/raw/plantvillage/
+data/raw/crop_recommendation/
+data/processed/
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

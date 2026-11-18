@@ -1,0 +1,16 @@
+# Vercel Ignore File
+# Excludes heavy datasets, cache artifacts, and local virtualenvs from Vercel deployment
+
+data/
+models/
+logs/
+reports/
+.pytest_cache/
+**/__pycache__/
+*.pyc
+*.pkl
+*.joblib
+*.h5
+*.log
+.venv/
+env/
