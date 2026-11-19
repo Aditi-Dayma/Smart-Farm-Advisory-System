@@ -1,0 +1,378 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Smart Farm Advisory System - Full Stack AWS Infrastructure (DynamoDB, Lambda, API Gateway, EventBridge, SNS, S3)'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: 'smart-farm-advisory'
+    Description: 'Base name prefix for resources'
+
+Resources:
+  # ══════════════════════════════════════════════════════════════════
+  # 1. DYNAMODB TABLES (Pay-Per-Request / Free Tier Friendly)
+  # ══════════════════════════════════════════════════════════════════
+
+  FarmProfilesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: FarmProfiles
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: farm_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: farm_id
+          KeyType: HASH
+
+  IrrigationAdvisoriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: IrrigationAdvisories
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: farm_id
+          AttributeType: S
+        - AttributeName: date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: farm_id
+          KeyType: HASH
+        - AttributeName: date
+          KeyType: RANGE
+
+  PesticideAdvisoriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: PesticideAdvisories
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: farm_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: farm_id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+
+  DiseaseDetectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: DiseaseDetections
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: detection_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: detection_id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+
+  # ══════════════════════════════════════════════════════════════════
+  # 2. AMAZON SNS ALERT TOPIC
+  # ══════════════════════════════════════════════════════════════════
+
+  FarmAlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: SmartFarmAlertsTopic
+      DisplayName: 'Smart Farm Advisory Alerts'
+
+  # ══════════════════════════════════════════════════════════════════
+  # 3. IAM ROLE FOR LAMBDA FUNCTIONS
+  # ══════════════════════════════════════════════════════════════════
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-lambda-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SmartFarmResourceAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt FarmProfilesTable.Arn
+                  - !GetAtt IrrigationAdvisoriesTable.Arn
+                  - !GetAtt PesticideAdvisoriesTable.Arn
+                  - !GetAtt DiseaseDetectionsTable.Arn
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref FarmAlertsTopic
+
+  # ══════════════════════════════════════════════════════════════════
+  # 4. LAMBDA FUNCTIONS (Serverless Compute)
+  # ══════════════════════════════════════════════════════════════════
+
+  ApiHandlerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-api-handler'
+      Runtime: python3.10
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 10
+      MemorySize: 256
+      Environment:
+        Variables:
+          TABLE_FARM_PROFILES: !Ref FarmProfilesTable
+          TABLE_IRRIGATION_ADVISORIES: !Ref IrrigationAdvisoriesTable
+          TABLE_PESTICIDE_ADVISORIES: !Ref PesticideAdvisoriesTable
+      Code:
+        ZipFile: |
+          import json
+          import os
+          import boto3
+
+          dynamodb = boto3.resource("dynamodb")
+          TABLE_FARMS = os.environ.get("TABLE_FARM_PROFILES", "FarmProfiles")
+
+          CORS_HEADERS = {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+              "Access-Control-Allow-Headers": "Content-Type",
+          }
+
+          def respond(status, body):
+              return {"statusCode": status, "headers": CORS_HEADERS, "body": json.dumps(body)}
+
+          def lambda_handler(event, context):
+              method = event.get("httpMethod") or event.get("requestContext", {}).get("http", {}).get("method", "GET")
+              path = event.get("rawPath") or event.get("path", "/")
+
+              if method == "OPTIONS":
+                  return respond(200, {"message": "CORS OK"})
+
+              try:
+                  body = json.loads(event.get("body", "{}")) if event.get("body") else {}
+              except:
+                  body = {}
+
+              if "/crop-recommendation" in path:
+                  season = body.get("season", "Kharif")
+                  return respond(200, {
+                      "recommendations": [
+                          {"crop": "Rice (Paddy)", "probability": 0.92, "season_match": True, "rank": 1},
+                          {"crop": "Maize (Corn)", "probability": 0.81, "season_match": True, "rank": 2},
+                          {"crop": "Cotton", "probability": 0.68, "season_match": True, "rank": 3}
+                      ],
+                      "season": season
+                  })
+
+              if "/disease-detection" in path:
+                  return respond(200, {
+                      "crop": "Tomato",
+                      "disease": "Early Blight",
+                      "confidence": 0.942,
+                      "all_predictions": [
+                          {"crop": "Tomato", "disease": "Early Blight", "confidence": 0.942},
+                          {"crop": "Tomato", "disease": "Late Blight", "confidence": 0.038}
+                      ]
+                  })
+
+              return respond(200, {"status": "Smart Farm Advisory API online", "path": path})
+
+  DailyIrrigationFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-daily-irrigation'
+      Runtime: python3.10
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          TABLE_FARM_PROFILES: !Ref FarmProfilesTable
+          TABLE_IRRIGATION_ADVISORIES: !Ref IrrigationAdvisoriesTable
+          SNS_TOPIC_ARN: !Ref FarmAlertsTopic
+      Code:
+        ZipFile: |
+          import json
+          import os
+          import urllib.request
+          from datetime import datetime
+          import boto3
+
+          dynamodb = boto3.resource("dynamodb")
+          sns = boto3.client("sns")
+          SNS_TOPIC = os.environ.get("SNS_TOPIC_ARN", "")
+          TABLE_NAME = os.environ.get("TABLE_IRRIGATION_ADVISORIES", "IrrigationAdvisories")
+
+          def lambda_handler(event, context):
+              today = datetime.utcnow().strftime("%Y-%m-%d")
+              table = dynamodb.Table(TABLE_NAME)
+
+              # Default water balance parameters (FAO-56)
+              et0 = 4.8
+              kc = 1.15
+              etc = round(et0 * kc, 2)
+              rain = 0.0
+              should_irrigate = True
+              amount_mm = 21.7
+              volume_liters = 217000
+
+              record = {
+                  "farm_id": "demo_farm_001",
+                  "date": today,
+                  "should_irrigate": should_irrigate,
+                  "amount_mm": str(amount_mm),
+                  "volume_liters": str(volume_liters),
+                  "et0": str(et0),
+                  "etc": str(etc),
+                  "rain_forecast": str(rain)
+              }
+              table.put_item(Item=record)
+
+              if SNS_TOPIC:
+                  try:
+                      sns.publish(
+                          TopicArn=SNS_TOPIC,
+                          Subject="Daily Irrigation Notice",
+                          Message=f"Smart Farm Alert: Irrigate {amount_mm} mm today ({volume_liters} L/ha)."
+                      )
+                  except Exception as e:
+                      print(f"SNS publish failed: {e}")
+
+              return {"statusCode": 200, "body": json.dumps({"status": "daily run completed", "record": record})}
+
+  # ══════════════════════════════════════════════════════════════════
+  # 5. AMAZON EVENTBRIDGE (Daily Cron Trigger at 06:00 AM IST)
+  # ══════════════════════════════════════════════════════════════════
+
+  DailyIrrigationSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${ProjectName}-daily-schedule'
+      Description: 'Triggers daily irrigation calculation at 06:00 AM IST (00:30 UTC)'
+      ScheduleExpression: 'cron(30 0 * * ? *)'
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt DailyIrrigationFunction.Arn
+          Id: TargetDailyIrrigationFunction
+
+  EventBridgeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DailyIrrigationFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt DailyIrrigationSchedule.Arn
+
+  # ══════════════════════════════════════════════════════════════════
+  # 6. HTTP API GATEWAY (REST Exposure)
+  # ══════════════════════════════════════════════════════════════════
+
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${ProjectName}-api'
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+
+  ApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ApiHandlerFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  DefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: '$default'
+      Target: !Sub 'integrations/${ApiIntegration}'
+
+  ApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: '$default'
+      AutoDeploy: true
+
+  ApiGatewayLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ApiHandlerFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*'
+
+  # ══════════════════════════════════════════════════════════════════
+  # 7. S3 STATIC WEBSITE BUCKET (Frontend Hosting)
+  # ══════════════════════════════════════════════════════════════════
+
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-frontend-${AWS::AccountId}'
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
+
+Outputs:
+  WebsiteURL:
+    Description: 'Public URL of the S3 Static Website Dashboard'
+    Value: !GetAtt WebsiteBucket.WebsiteURL
+
+  ApiEndpoint:
+    Description: 'HTTP API Gateway Base URL'
+    Value: !GetAtt HttpApi.ApiEndpoint
+
+  SNSTopicArn:
+    Description: 'Amazon SNS Topic ARN for Alerts'
+    Value: !Ref FarmAlertsTopic
+
+  DynamoDBTables:
+    Description: 'DynamoDB Tables Created'
+    Value: 'FarmProfiles, IrrigationAdvisories, PesticideAdvisories, DiseaseDetections'
