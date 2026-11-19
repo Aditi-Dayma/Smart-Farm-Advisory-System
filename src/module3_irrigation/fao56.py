@@ -370,6 +370,38 @@ def compute_et0(
     return max(et0, 0.0)
 
 
+def calculate_et0(
+    temp_min: float,
+    temp_max: float,
+    temp_mean: Optional[float] = None,
+    rh_mean: Optional[float] = None,
+    humidity_mean: Optional[float] = None,
+    wind_speed_2m: Optional[float] = None,
+    wind_speed: Optional[float] = None,
+    solar_radiation: Optional[float] = None,
+    sunshine_hours: Optional[float] = None,
+    day_of_year: int = 1,
+    latitude_deg: Optional[float] = None,
+    latitude: Optional[float] = None,
+    altitude_m: Optional[float] = None,
+    altitude: Optional[float] = None,
+    **kwargs: Any,
+) -> float:
+    """Convenience wrapper for compute_et0 supporting alternate parameter names."""
+    return compute_et0(
+        temp_min=temp_min,
+        temp_max=temp_max,
+        temp_mean=temp_mean,
+        rh_mean=rh_mean if rh_mean is not None else (humidity_mean if humidity_mean is not None else 50.0),
+        wind_speed_2m=wind_speed_2m if wind_speed_2m is not None else (wind_speed if wind_speed is not None else 2.0),
+        solar_radiation=solar_radiation,
+        sunshine_hours=sunshine_hours,
+        day_of_year=day_of_year,
+        latitude_deg=latitude_deg if latitude_deg is not None else (latitude if latitude is not None else 20.0),
+        altitude_m=altitude_m if altitude_m is not None else (altitude if altitude is not None else 0.0),
+    )
+
+
 # ══════════════════════════════════════════════════════════════════════
 # 3.  CROP WATER REQUIREMENT  (ETc = ET₀ × Kc)
 # ══════════════════════════════════════════════════════════════════════
